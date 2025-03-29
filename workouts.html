@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Streak App</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hot-toast@2.1.0/dist/hot-toast.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hot-toast@2.1.0/dist/hot-toast.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(to bottom right, #3b82f6, #9333ea);
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 28rem;
+      margin: 0 auto;
+      background-color: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      padding: 1.5rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.375rem;
+    }
+
+    button {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .button-group button {
+      width: 100%;
+    }
+
+    .btn-blue {
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      border: none;
+    }
+
+    .btn-blue:hover {
+      background-color: #2563eb;
+    }
+
+    .btn-green {
+      background-color: #10b981;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      border: none;
+    }
+
+    .btn-green:hover {
+      background-color: #059669;
+    }
+
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      border: none;
+    }
+
+    .btn-purple:hover {
+      background-color: #7c3aed;
+    }
+
+    .btn-teal {
+      background-color: #14b8a6;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      border: none;
+    }
+
+    .btn-teal:hover {
+      background-color: #0d9488;
+    }
+
+    .btn-red {
+      background-color: #ef4444;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      border: none;
+    }
+
+    .btn-red:hover {
+      background-color: #dc2626;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .mb-4 {
+      margin-bottom: 1rem;
+    }
+
+    .mt-4 {
+      margin-top: 1rem;
+    }
+
+    .mt-2 {
+      margin-top: 0.5rem;
+    }
+
+    .text-2xl {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+
+    .text-4xl {
+      font-size: 2.25rem;
+      line-height: 2.5rem;
+    }
+
+    .font-bold {
+      font-weight: 700;
+    }
+
+    .font-extrabold {
+      font-weight: 800;
+    }
+
+    .text-blue-600 {
+      color: #2563eb;
+    }
+
+    .grid {
+      display: grid;
+    }
+
+    .grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .gap-2 {
+      gap: 0.5rem;
+    }
+
+    .exercises-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .exercise-btn {
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+    }
+
+    .exercise-btn.completed {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .exercise-btn.not-completed {
+      background-color: #e5e7eb;
+      color: #4b5563;
+    }
+
+    .exercise-icon {
+      margin-right: 0.5rem;
+    }
+
+    .w-full {
+      width: 100%;
+    }
+
+    .text-sm {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="auth-section"></div>
+    <div id="app-section" style="display: none;">
+      <div class="text-center mb-4">
+        <h2 class="text-2xl font-bold">Fitness Streak</h2>
+        <div id="streak-display" class="text-4xl font-extrabold text-blue-600">0 Days</div>
+        
+        <div id="exercises-container" class="exercises-grid mt-4"></div>
+
+        <button id="submit-workout-btn" class="w-full mt-4 btn-purple">
+          Complete Today's Workout
+        </button>
+
+        <div class="mt-4">
+          <input id="partner-code-input" type="text" placeholder="Enter Partner Code" class="w-full p-2 mb-2 border rounded">
+          <button id="connect-partner-btn" class="w-full btn-teal">
+            Connect Partner
+          </button>
+          <div id="partner-streak-display" class="mt-2 text-sm" style="display: none;">
+            Partner's Streak: <span id="partner-streak">0</span> Days
+          </div>
+        </div>
+
+        <button id="logout-btn" class="w-full mt-4 btn-red">
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDDuw0TVg8OaR1w8wvEWANu7jPjAMhCfuk",
+      authDomain: "gigs-12c7a.firebaseapp.com",
+      projectId: "gigs-12c7a",
+      storageBucket: "gigs-12c7a.firebasestorage.app",
+      messagingSenderId: "55107125800",
+      appId: "1:55107125800:web:95ef22226809e35237ab1d",
+      measurementId: "G-S6YT0XKTJ6"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const analytics = firebase.analytics();
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Exercise Types
+    const EXERCISES = [
+      { id: 'run', name: 'Run', icon: 'activity' },
+      { id: 'pushups', name: 'Push-ups', icon: 'check-circle-2' },
+      { id: 'squats', name: 'Squats', icon: 'trophy' },
+      { id: 'pullups', name: 'Pull-ups', icon: 'link' },
+      { id: 'plank', name: 'Plank', icon: 'calendar' },
+      { id: 'core', name: 'Core', icon: 'x-circle' }
+    ];
+
+    // App State
+    let currentUser = null;
+    let streak = 0;
+    let partnerStreak = 0;
+    let todayWorkout = {
+      run: false,
+      pushups: false,
+      squats: false,
+      pullups: false,
+      plank: false,
+      core: false
+    };
+
+    // DOM Elements
+    const authSection = document.getElementById('auth-section');
+    const appSection = document.getElementById('app-section');
+    const streakDisplay = document.getElementById('streak-display');
+    const exercisesContainer = document.getElementById('exercises-container');
+    const submitWorkoutBtn = document.getElementById('submit-workout-btn');
+    const partnerCodeInput = document.getElementById('partner-code-input');
+    const connectPartnerBtn = document.getElementById('connect-partner-btn');
+    const partnerStreakDisplay = document.getElementById('partner-streak-display');
+    const partnerStreakSpan = document.getElementById('partner-streak');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Render Authentication Form
+    function renderAuthForm() {
+      authSection.innerHTML = `
+        <form id="auth-form">
+          <input type="email" id="email-input" placeholder="Email" class="w-full p-2 mb-2 border rounded">
+          <input type="password" id="password-input" placeholder="Password" class="w-full p-2 mb-2 border rounded">
+          <div class="button-group">
+            <button type="button" id="signup-btn" class="btn-blue">Sign Up</button>
+            <button type="button" id="login-btn" class="btn-green">Login</button>
+          </div>
+        </form>
+      `;
+
+      document.getElementById('signup-btn').addEventListener('click', handleSignup);
+      document.getElementById('login-btn').addEventListener('click', handleLogin);
+    }
+
+    // Render Exercises
+    function renderExercises() {
+      exercisesContainer.innerHTML = '';
+      EXERCISES.forEach(exercise => {
+        const exerciseBtn = document.createElement('button');
+        exerciseBtn.className = `exercise-btn ${todayWorkout[exercise.id] ? 'completed' : 'not-completed'}`;
+        exerciseBtn.innerHTML = `
+          <i data-lucide="${exercise.icon}" class="exercise-icon"></i>
+          ${exercise.name}
+        `;
+        exerciseBtn.addEventListener('click', () => {
+          todayWorkout[exercise.id] = !todayWorkout[exercise.id];
+          exerciseBtn.className = `exercise-btn ${todayWorkout[exercise.id] ? 'completed' : 'not-completed'}`;
+          lucide.createIcons();
+        });
+        exercisesContainer.appendChild(exerciseBtn);
+      });
+      lucide.createIcons();
+    }
+
+    // Authentication Handlers
+    async function handleSignup() {
+      const email = document.getElementById('email-input').value;
+      const password = document.getElementById('password-input').value;
+
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const newUser = userCredential.user;
+        
+        // Initialize user document
+        await db.collection('users').doc(newUser.uid).set({
+          streak: 0,
+          longestStreak: 0,
+          totalWorkouts: 0,
+          partnerCode: newUser.uid.slice(0, 8),
+          workoutHistory: []
+        });
+
+        hotToast.success('Account created successfully!');
+        document.getElementById('email-input').value = '';
+        document.getElementById('password-input').value = '';
+      } catch (error) {
+        hotToast.error(error.message);
+      }
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('email-input').value;
+      const password = document.getElementById('password-input').value;
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        hotToast.success('Logged in successfully!');
+        document.getElementById('email-input').value = '';
+        document.getElementById('password-input').value = '';
+      } catch (error) {
+        hotToast.error(error.message);
+      }
+    }
+
+    async function handleLogout() {
+      try {
+        await auth.signOut();
+        hotToast.success('Logged out successfully!');
+      } catch (error) {
+        hotToast.error(error.message);
+      }
+    }
+
+    // Workout Submission Handler
+    async function submitWorkout() {
+      if (!currentUser) return;
+
+      const allExercisesCompleted = Object.values(todayWorkout).every(completed => completed);
+      if (!allExercisesCompleted) {
+        hotToast.error('Complete all exercises to increment streak!');
+        return;
+      }
+
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          streak: streak + 1,
+          longestStreak: Math.max(streak + 1, streak),
+          totalWorkouts: streak + 1,
+          lastCompletedDate: firebase.firestore.FieldValue.serverTimestamp(),
+          workoutHistory: firebase.firestore.FieldValue.arrayUnion({
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+            exercises: Object.entries(todayWorkout).map(([id, completed]) => ({
+              id,
+              completed
+            }))
+          })
+        });
+
+        streak += 1;
+        streakDisplay.textContent = `${streak} Days`;
+        hotToast.success('Great job! Streak incremented!');
+        
+        // Reset today's workout
+        todayWorkout = {
+          run: false,
+          pushups: false,
+          squats: false,
+          pullups: false,
+          plank: false,
+          core: false
+        };
+        renderExercises();
+      } catch (error) {
+        hotToast.error('Failed to update streak');
+      }
+    }
+
+    // Partner Connection Handler
+    async function connectPartner() {
+      if (!currentUser || !partnerCodeInput.value) return;
+
+      try {
+        const partnerRef = db.collection('users').doc(partnerCodeInput.value);
+        const partnerSnap = await partnerRef.get();
+
+        if (partnerSnap.exists()) {
+          await db.collection('users').doc(currentUser.uid).update({
+            partnerId: partnerCodeInput.value
+          });
+
+          partnerStreak = partnerSnap.data().streak;
+          partnerStreakSpan.textContent = partnerStreak;
+          partnerStreakDisplay.style.display = 'block';
+          hotToast.success('Partner connected successfully!');
+        } else {
+          hotToast.error('Partner code not found');
+        }
+      } catch (error) {
+        hotToast.error('Failed to connect partner');
+      }
+    }
+
+    // Initialize the app
+    function init() {
+      renderAuthForm();
+
+      // Set up event listeners
+      submitWorkoutBtn.addEventListener('click', submitWorkout);
+      connectPartnerBtn.addEventListener('click', connectPartner);
+      logoutBtn.addEventListener('click', handleLogout);
+
+      // Auth state observer
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          currentUser = user;
+          authSection.style.display = 'none';
+          appSection.style.display = 'block';
+          
+          // Fetch user's streak data
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            streak = userData.streak || 0;
+            streakDisplay.textContent = `${streak} Days`;
+          }
+
+          renderExercises();
+        } else {
+          currentUser = null;
+          authSection.style.display = 'block';
+          appSection.style.display = 'none';
+          streak = 0;
+          partnerStreak = 0;
+          todayWorkout = {
+            run: false,
+            pushups: false,
+            squats: false,
+            pullups: false,
+            plank: false,
+            core: false
+          };
+          partnerStreakDisplay.style.display = 'none';
+        }
+      });
+    }
+
+    // Start the app
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
